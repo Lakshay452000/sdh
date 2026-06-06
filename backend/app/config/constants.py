@@ -1,0 +1,1 @@
+SYSTEM_DESIGN_COLLECTION = "system_design"

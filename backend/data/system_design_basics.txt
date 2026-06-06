@@ -1,0 +1,11 @@
+Consistent Hashing
+
+Consistent hashing is used to distribute keys across servers.
+
+Advantages:
+- Minimizes rebalancing
+- Helps scaling
+- Commonly used in Cassandra and DynamoDB
+
+Virtual Nodes:
+Virtual nodes improve distribution and reduce hotspots.
