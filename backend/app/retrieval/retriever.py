@@ -12,14 +12,25 @@ reranker = Reranker()
 
 def retrieve_vector_context(
     query: str,
-    top_k: int = 10
+    top_k: int = 10,
+    document_id: str | None = None
 ) -> list[RetrievedChunk]:
 
     collection = get_collection()
 
+    query_params = {
+        "query_texts": [query],
+        "n_results": top_k
+    }
+
+    if document_id is not None:
+
+        query_params["where"] = {
+            "document_id": document_id
+        }
+
     results = collection.query(
-        query_texts=[query],
-        n_results=top_k
+        **query_params
     )
 
     documents = results["documents"][0]
