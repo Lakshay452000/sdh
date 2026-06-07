@@ -1,65 +1,42 @@
-from app.retrieval.retriever import retrieve_vector_context
-from app.services.gemini_service import GeminiService
+from app.retrieval.retriever import (
+    retrieve_vector_context
+)
+from app.services.gemini_service import (
+    GeminiService
+)
 from app.schemas.rag_response import (
     RagResponse
 )
-from app.retrieval.sentence_window_retriever import (
-    SentenceWindowRetriever
+from app.retrieval.auto_merging_retriever import (
+    AutoMergingRetriever
 )
 
 class RagService:
 
     def __init__(self):
-        self.gemini_service = GeminiService()
-        self.window_retriever = (
-            SentenceWindowRetriever()
+
+        self.gemini_service = (
+            GeminiService()
+        )
+        self.auto_merging_retriever = (
+            AutoMergingRetriever()
         )
 
-    def ask(self, question: str) -> RagResponse:
+    def ask(
+        self,
+        question: str
+    ) -> RagResponse:
 
-        chunks = retrieve_vector_context(
-            question
-        )
-
-        expanded_chunks = []
-
-        for chunk in chunks:
-
-            window_chunks = (
-                self.window_retriever
-                .retrieve_window(chunk)
-            )
-
-            expanded_chunks.extend(
-                window_chunks
-            )
-
-        unique_chunks = {}
-
-        for chunk in expanded_chunks:
-
-            key = (
-                chunk.source,
-                chunk.chunk_number
-            )
-
-            unique_chunks[key] = chunk
-
-        final_chunks = sorted(
-            unique_chunks.values(),
-            key=lambda chunk: (
-                chunk.source,
-                chunk.chunk_number
+        chunks = (
+            retrieve_vector_context(
+                question
             )
         )
 
-        print(
-            [
-                chunk.chunk_number
-                for chunk in final_chunks
-            ]
+        final_chunks = (
+            self.auto_merging_retriever
+            .auto_merge(chunks)
         )
-
         context = "\n\n".join(
             chunk.content
             for chunk in final_chunks
@@ -77,7 +54,9 @@ Question:
 {question}
 """
 
-        answer = self.gemini_service.ask(prompt)
+        answer = self.gemini_service.ask(
+            prompt
+        )
 
         sources = []
 
@@ -85,11 +64,14 @@ Question:
 
             source = (
                 f"{chunk.source} "
-                f"(chunk {chunk.chunk_number})"
+                f"(level {chunk.level})"
             )
 
             if source not in sources:
-                sources.append(source)
+
+                sources.append(
+                    source
+                )
 
         return RagResponse(
             answer=answer,

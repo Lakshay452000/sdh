@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from pathlib import Path
 
 from app.schemas.request import AskRequest
 from app.schemas.response import AskResponse
@@ -20,7 +21,6 @@ from app.retrieval.multi_query_retriever import (
 from app.schemas.filter_debug_request import (
     FilterDebugRequest
 )
-
 from app.retrieval.retriever import (
     retrieve_vector_context
 )
@@ -29,6 +29,27 @@ from app.retrieval.sentence_window_retriever import (
 )
 from app.schemas.retrieved_chunk import (
     RetrievedChunk
+)
+from app.utils.hierarchical_text_splitter import (
+    build_hierarchy
+)
+from app.document_loaders.document_loader import (
+    load_document
+)
+from app.vectorstore.system_design_collection import (
+    get_collection
+)
+from app.retrieval.auto_merging_retriever import (
+    AutoMergingRetriever
+)
+from app.vectorstore.system_design_collection import (
+    get_collection
+)
+from app.retrieval.auto_merging_retriever import (
+    AutoMergingRetriever
+)
+from app.retrieval.retriever import (
+    retrieve_vector_context
 )
 
 multi_query_retriever = MultiQueryRetriever()
@@ -129,9 +150,150 @@ def window_debug():
         window_size=1
     )
 
+@router.get("/hierarchy-debug")
+def hierarchy_debug():
 
+    content = load_document(
+        Path("data/sample_resume.pdf")
+    )
 
+    nodes = build_hierarchy(
+        text=content,
+        document_id="test"
+    )
 
+    return [
+        {
+            "node_id": node.node_id,
+            "parent_id": node.parent_id,
+            "level": node.level,
+            "text_length": len(node.text)
+        }
+        for node in nodes
+    ]
+
+@router.get("/hierarchy-storage-debug")
+def hierarchy_storage_debug():
+
+    collection = get_collection()
+
+    results = collection.get(
+        include=[
+            "documents",
+            "metadatas"
+        ]
+    )
+
+    return results["metadatas"][:20]
+
+@router.get("/parent-debug")
+def parent_debug():
+
+    collection = get_collection()
+
+    results = collection.get(
+        include=["metadatas"]
+    )
+
+    node = None
+
+    for metadata, node_id in zip(
+        results["metadatas"],
+        results["ids"]
+    ):
+
+        if metadata["level"] == 3:
+
+            node = {
+                "node_id": node_id,
+                "parent_id": metadata["parent_id"]
+            }
+
+            break
+
+    return node
+
+@router.get("/parent-chain-debug")
+def parent_chain_debug():
+
+    collection = get_collection()
+
+    results = collection.get(
+        include=["metadatas"]
+    )
+
+    target_node = None
+
+    for metadata, node_id in zip(
+        results["metadatas"],
+        results["ids"]
+    ):
+
+        if metadata["level"] == 3:
+
+            target_node = node_id
+            break
+
+    if target_node is None:
+
+        return {
+            "error": "No level 3 node found"
+        }
+
+    retriever = AutoMergingRetriever()
+
+    chain = retriever.get_parent_chain(
+        target_node
+    )
+
+    return [
+        {
+            "id": node["id"],
+            "level": node["metadata"]["level"],
+            "parent_id": node["metadata"]["parent_id"]
+        }
+        for node in chain
+    ]
+
+@router.post(
+    "/auto-merge-debug"
+)
+def auto_merge_debug(
+    request: AskRequest
+):
+
+    chunks = retrieve_vector_context(
+        request.question
+    )
+
+    retriever = (
+        AutoMergingRetriever()
+    )
+
+    merged_chunks = (
+        retriever.auto_merge(
+            chunks
+        )
+    )
+
+    return {
+        "before_merge": [
+            {
+                "node_id": chunk.node_id,
+                "parent_id": chunk.parent_id,
+                "level": chunk.level
+            }
+            for chunk in chunks
+        ],
+        "after_merge": [
+            {
+                "node_id": chunk.node_id,
+                "parent_id": chunk.parent_id,
+                "level": chunk.level
+            }
+            for chunk in merged_chunks
+        ]
+    }
 
 
 

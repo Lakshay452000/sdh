@@ -1,14 +1,16 @@
 from app.schemas.retrieved_chunk import (
     RetrievedChunk
 )
-
 from app.vectorstore.system_design_collection import (
     get_collection
 )
-
 from app.retrieval.reranker import Reranker
+from app.config.constants import AUTO_MERGING_LEVEL_SIZES
 
 reranker = Reranker()
+leaf_level = (
+    len(AUTO_MERGING_LEVEL_SIZES) - 1
+)
 
 def retrieve_vector_context(
     query: str,
@@ -20,13 +22,22 @@ def retrieve_vector_context(
 
     query_params = {
         "query_texts": [query],
-        "n_results": top_k
+        "n_results": top_k,
+        "where": {
+            "level": leaf_level
+        }
     }
 
     if document_id is not None:
-
         query_params["where"] = {
-            "document_id": document_id
+            "$and": [
+                {
+                    "document_id": document_id
+                },
+                {
+                    "level": leaf_level
+                }
+            ]
         }
 
     results = collection.query(
@@ -49,9 +60,16 @@ def retrieve_vector_context(
             RetrievedChunk(
                 content=document,
                 source=metadata["source"],
-                chunk_number=metadata["chunk_number"],
+                node_id=metadata["node_id"],
+                parent_id=metadata["parent_id"],
+                level=metadata["level"],
                 distance=distance
             )
+        )
+    for chunk in retrieved_chunks:
+        print(
+            chunk.level,
+            chunk.node_id
         )
     retrieved_chunks.sort(
         key=lambda chunk: chunk.distance

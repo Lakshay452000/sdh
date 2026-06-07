@@ -1,6 +1,8 @@
 from pathlib import Path
 from uuid import uuid4
 
+from networkx import nodes
+
 from app.document_loaders.document_loader import (
     load_document
 )
@@ -10,7 +12,9 @@ from app.vectorstore.system_design_collection import (
 from app.schemas.document_response import (
     DocumentResponse
 )
-from app.utils.text_splitter import split_text
+from app.utils.hierarchical_text_splitter import (
+    build_hierarchy
+)
 
 
 class DocumentService:
@@ -31,29 +35,46 @@ class DocumentService:
             raise ValueError(
                 "Document is empty"
             )
-
-        chunks = split_text(content)
+        
+        nodes = build_hierarchy(
+            text=content,
+            document_id=document_id
+        )
 
         documents = []
         ids = []
         metadatas = []
 
-        for index, chunk in enumerate(chunks):
+        for node in nodes:
 
-            documents.append(chunk)
+            documents.append(
+                node.text
+            )
 
             ids.append(
-                f"{document_id}_chunk_{index}"
+                node.node_id
             )
 
             metadatas.append(
                 {
-                    "document_id": document_id,
+                    "document_id": node.document_id,
+                    "node_id": node.node_id,
+                    "parent_id": (
+                        node.parent_id
+                        if node.parent_id is not None
+                        else "ROOT"
+                    ),
+                    "level": node.level,
+                    "children_count": node.children_count,
+                    "chunk_type": "hierarchy",
                     "source": original_file_name,
-                    "file_name": original_file_name,
-                    "chunk_number": index
+                    "file_name": original_file_name
                 }
             )
+
+        print(
+            f"Generated {len(nodes)} hierarchy nodes"
+        )
 
         collection.add(
             documents=documents,
