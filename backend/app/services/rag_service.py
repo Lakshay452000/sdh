@@ -10,6 +10,15 @@ from app.schemas.rag_response import (
 from app.retrieval.auto_merging_retriever import (
     AutoMergingRetriever
 )
+from app.retrieval.hybrid_retriever import (
+    HybridRetriever
+)
+from app.retrieval.reranker import (
+    Reranker
+)
+from app.schemas.metadata_filter import (
+    MetadataFilter
+)
 
 class RagService:
 
@@ -21,31 +30,107 @@ class RagService:
         self.auto_merging_retriever = (
             AutoMergingRetriever()
         )
+        self.hybrid_retriever = (
+            HybridRetriever()
+        )
+
+        self.reranker = (
+            Reranker()
+        )
 
     def ask(
         self,
-        question: str
+        question: str,
+        metadata_filter: MetadataFilter | None = None
     ) -> RagResponse:
 
         chunks = (
-            retrieve_vector_context(
-                question
+            self.hybrid_retriever
+            .retrieve(
+                query=question,
+                top_k=10,
+                metadata_filter=metadata_filter
             )
         )
+        # print("\nAFTER HYBRID")
+        # print(f"count={len(chunks)}")
 
+        # for chunk in chunks:
+        #     print(
+        #         chunk.level,
+        #         chunk.node_id[:8],
+        #         chunk.content[:100]
+        #     )
+
+        if not chunks:
+
+            return RagResponse(
+                answer="No relevant information found.",
+                sources=[],
+                retrieved_chunks=[]
+            )
+        
+        chunks = self.reranker.rerank(
+            query=question,
+            chunks=chunks,
+            top_n=3
+        )
+
+        # print("\nAFTER RERANK")
+        # print(f"count={len(chunks)}")
+
+        # for chunk in chunks:
+
+        #     print("=" * 100)
+        #     print(chunk.node_id)
+        #     print(chunk.content)
+        
         final_chunks = (
             self.auto_merging_retriever
             .auto_merge(chunks)
         )
+
+        # print("\nAFTER AUTO MERGE")
+        # print(f"count={len(final_chunks)}")
+
+        # for chunk in final_chunks:
+
+        #     print(
+        #         chunk.level,
+        #         chunk.node_id[:8]
+        #     )
+
+        #     print(
+        #         chunk.content[:1000]
+        #     )
+
         context = "\n\n".join(
             chunk.content
             for chunk in final_chunks
         )
 
+        # return RagResponse(
+        #     answer="DEBUG MODE",
+        #     sources=[
+        #         f"{chunk.source} (level {chunk.level})"
+        #         for chunk in final_chunks
+        #     ],
+        #     retrieved_chunks=final_chunks
+        # )
+    
         prompt = f"""
 You are a System Design assistant.
 
-Answer using ONLY the provided context.
+Use ONLY the provided context.
+
+If the answer is not explicitly present in the context,
+respond exactly:
+
+"I could not find the answer in the provided context."
+
+Do not use prior knowledge.
+Do not make assumptions.
+Do not infer information that is not explicitly stated.
 
 Context:
 {context}

@@ -93,6 +93,16 @@ class AutoMergingRetriever:
         bool
     ]:
 
+        # print("\nINPUT TO MERGE")
+
+        # for chunk in chunks:
+
+        #     print(
+        #         f"node={chunk.node_id[:8]} "
+        #         f"parent={chunk.parent_id[:8]} "
+        #         f"level={chunk.level}"
+        #     )
+
         parent_groups = defaultdict(list)
 
         for chunk in chunks:
@@ -101,8 +111,25 @@ class AutoMergingRetriever:
                 chunk.parent_id
             ].append(chunk)
 
+        # print("\nGROUPS")
+
+        # for parent_id, siblings in (
+        #     parent_groups.items()
+        # ):
+
+        #     print(
+        #         f"parent={parent_id[:8]}"
+        #     )
+
+        #     for chunk in siblings:
+
+        #         print(
+        #             f"   child={chunk.node_id[:8]}"
+        #         )
+
         merged_chunks = []
         merge_happened = False
+
         for parent_id, siblings in (
             parent_groups.items()
         ):
@@ -139,16 +166,33 @@ class AutoMergingRetriever:
             )
 
             # print(
-            #     f"Parent={parent_id[:8]} "
+            #     f"\nparent={parent_id[:8]} "
             #     f"retrieved={retrieved_children} "
             #     f"total={total_children} "
             #     f"coverage={coverage:.2f}"
             # )
+
             if (
                 total_children > 1
                 and
                 coverage >= AUTO_MERGE_THRESHOLD
             ):
+
+                reranker_scores = [
+                    chunk.reranker_score
+                    for chunk in siblings
+                    if chunk.reranker_score is not None
+                ]
+
+                bm25_scores = [
+                    chunk.bm25_score
+                    for chunk in siblings
+                    if chunk.bm25_score is not None
+                ]
+
+                # print(
+                #     f"MERGING -> {parent_id[:8]}"
+                # )
 
                 merged_chunks.append(
                     RetrievedChunk(
@@ -172,21 +216,45 @@ class AutoMergingRetriever:
                         distance=min(
                             chunk.distance
                             for chunk in siblings
+                        ),
+                        reranker_score=(
+                            max(reranker_scores)
+                            if reranker_scores
+                            else None
+                        ),
+                        bm25_score=(
+                            max(bm25_scores)
+                            if bm25_scores
+                            else None
                         )
                     )
                 )
+
                 merge_happened = True
+
             else:
+
+                # print(
+                #     f"KEEPING CHILDREN OF {parent_id[:8]}"
+                # )
 
                 merged_chunks.extend(
                     siblings
                 )
 
+        # print("\nMERGED RESULT")
+
+        # for chunk in merged_chunks:
+
+        #     print(
+        #         f"node={chunk.node_id[:8]} "
+        #         f"level={chunk.level}"
+        #     )
+
         return (
             merged_chunks,
             merge_happened
         )
-    
 
     def auto_merge(
         self,

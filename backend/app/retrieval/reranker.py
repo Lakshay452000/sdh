@@ -16,6 +16,9 @@ class Reranker:
         top_n: int = 5
     ):
 
+        if not chunks:
+
+            return []
         pairs = [
             (query, chunk.content)
             for chunk in chunks

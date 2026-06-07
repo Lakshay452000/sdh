@@ -7,26 +7,63 @@ class QueryExpansionService:
 
         queries = [question]
 
-        lower_question = question.lower()
+        lower_question = (
+            question.lower()
+        )
 
-        if "work" in lower_question:
+        expansions = {
 
-            queries.extend(
-                [
-                    "current employer",
-                    "current company",
-                    "workplace"
-                ]
-            )
+            "redis": [
+                "redis cache",
+                "caching",
+                "in-memory datastore"
+            ],
 
-        if "experience" in lower_question:
+            "kafka": [
+                "event streaming",
+                "message queue",
+                "pub sub"
+            ],
 
-            queries.extend(
-                [
-                    "professional experience",
-                    "employment history"
-                ]
-            )
+            "vault": [
+                "hashicorp vault",
+                "secret management",
+                "credentials storage"
+            ],
+
+            "microservices": [
+                "distributed services",
+                "service architecture",
+                "backend services"
+            ],
+
+            "grpc": [
+                "remote procedure call",
+                "rpc",
+                "inter service communication"
+            ],
+
+            "work": [
+                "current employer",
+                "current company",
+                "workplace"
+            ],
+
+            "experience": [
+                "professional experience",
+                "employment history"
+            ]
+        }
+
+        for keyword, synonyms in (
+            expansions.items()
+        ):
+
+            if keyword in lower_question:
+
+                queries.extend(
+                    synonyms
+                )
 
         return list(
             set(queries)

@@ -72,7 +72,8 @@ rag_service = RagService()
 def ask(request: AskRequest):
 
     rag_response = rag_service.ask(
-        request.question
+        question=request.question,
+        metadata_filter=request.metadata_filter
     )
 
     return AskResponse(

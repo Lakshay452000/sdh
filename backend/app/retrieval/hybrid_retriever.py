@@ -6,66 +6,84 @@ from app.retrieval.bm25_retriever import (
     BM25Retriever
 )
 
-from app.retrieval.reranker import (
-    Reranker
+from app.retrieval.rrf import (
+    reciprocal_rank_fusion
 )
 
+from app.schemas.retrieved_chunk import (
+    RetrievedChunk
+)
+
+from app.services.query_expansion_service import (
+    QueryExpansionService
+)
+
+from app.schemas.metadata_filter import (
+    MetadataFilter
+)
 
 class HybridRetriever:
 
     def __init__(self):
 
-        self.bm25_retriever = BM25Retriever()
+        self.bm25_retriever = (
+            BM25Retriever()
+        )
 
-        self.reranker = Reranker()
+        self.query_expansion_service = (
+            QueryExpansionService()
+        )
 
     def retrieve(
         self,
         query: str,
-        top_k: int = 5
-    ):
+        top_k: int = 10,
+        metadata_filter: MetadataFilter | None = None
+    ) -> list[RetrievedChunk]:
 
-        vector_chunks = retrieve_vector_context(
-            query=query,
-            top_k=10
-        )
+        # expanded_queries = (
+        #     self.query_expansion_service
+        #     .generate_queries(
+        #         query
+        #     )
+        # )
+        expanded_queries = [query]
 
-        bm25_chunks = self.bm25_retriever.retrieve(
-            query=query,
-            top_k=10
-        )
+        all_vector_chunks = []
 
-        merged_chunks = {}
+        all_bm25_chunks = []
 
-        for chunk in vector_chunks:
+        for expanded_query in expanded_queries:
 
-            key = (
-                chunk.source,
-                chunk.chunk_number
-            )
-
-            merged_chunks[key] = chunk
-
-        for chunk in bm25_chunks:
-
-            key = (
-                chunk.source,
-                chunk.chunk_number
-            )
-
-            if key in merged_chunks:
-                merged_chunks[key].bm25_score = (
-                    chunk.bm25_score
+            vector_chunks = (
+                retrieve_vector_context(
+                    query=expanded_query,
+                    top_k=top_k,
+                    metadata_filter=metadata_filter
                 )
-            else:
-                merged_chunks[key] = chunk
+            )
 
-        final_chunks = self.reranker.rerank(
-            query=query,
-            chunks=list(
-                merged_chunks.values()
-            ),
-            top_n=top_k
+            bm25_chunks = (
+                self.bm25_retriever.retrieve(
+                    query=expanded_query,
+                    top_k=top_k,
+                    metadata_filter=metadata_filter
+                )
+            )
+
+            all_vector_chunks.extend(
+                vector_chunks
+            )
+
+            all_bm25_chunks.extend(
+                bm25_chunks
+            )
+
+        fused_chunks = (
+            reciprocal_rank_fusion(
+                vector_chunks=all_vector_chunks,
+                bm25_chunks=all_bm25_chunks
+            )
         )
 
-        return final_chunks
+        return fused_chunks[:top_k]
