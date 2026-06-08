@@ -51,6 +51,7 @@ from app.retrieval.auto_merging_retriever import (
 from app.retrieval.retriever import (
     retrieve_vector_context
 )
+from app.dependencies.rag_dependencies import rag_service
 
 multi_query_retriever = MultiQueryRetriever()
 window_retriever = SentenceWindowRetriever()
@@ -62,9 +63,6 @@ router = APIRouter(
     tags=["Chat"]
 )
 
-rag_service = RagService()
-
-
 @router.post(
     "/ask",
     response_model=AskResponse
@@ -72,6 +70,7 @@ rag_service = RagService()
 def ask(request: AskRequest):
 
     rag_response = rag_service.ask(
+        session_id=request.session_id,
         question=request.question,
         metadata_filter=request.metadata_filter
     )

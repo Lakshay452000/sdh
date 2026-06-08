@@ -1,6 +1,3 @@
-from app.retrieval.retriever import (
-    retrieve_vector_context
-)
 from app.services.gemini_service import (
     GeminiService
 )
@@ -19,109 +16,129 @@ from app.retrieval.reranker import (
 from app.schemas.metadata_filter import (
     MetadataFilter
 )
+from app.services.conversation_memory_service import (
+    ConversationMemoryService
+)
+from app.schemas.chat_message import (
+    ChatMessage
+)
+from app.schemas.chat_role import (
+    ChatRole
+)
+
 
 class RagService:
 
-    def __init__(self):
+    def __init__(
+        self,
+        gemini_service: GeminiService,
+        hybrid_retriever: HybridRetriever,
+        reranker: Reranker,
+        auto_merging_retriever: AutoMergingRetriever,
+        conversation_memory_service:
+            ConversationMemoryService
+    ):
+        self._gemini_service = (
+            gemini_service
+        )
 
-        self.gemini_service = (
-            GeminiService()
-        )
-        self.auto_merging_retriever = (
-            AutoMergingRetriever()
-        )
-        self.hybrid_retriever = (
-            HybridRetriever()
+        self._hybrid_retriever = (
+            hybrid_retriever
         )
 
-        self.reranker = (
-            Reranker()
+        self._reranker = (
+            reranker
+        )
+
+        self._auto_merging_retriever = (
+            auto_merging_retriever
+        )
+
+        self._conversation_memory_service = (
+            conversation_memory_service
         )
 
     def ask(
         self,
+        session_id: str,
         question: str,
         metadata_filter: MetadataFilter | None = None
     ) -> RagResponse:
 
+        history_text = (
+            self._conversation_memory_service
+            .build_history_text(
+                session_id=session_id
+            )
+        )
+        self._conversation_memory_service.add_messages(
+            session_id=session_id,
+            messages=[
+                ChatMessage(
+                    role=ChatRole.USER,
+                    content=question
+                )
+            ]
+        )
+
         chunks = (
-            self.hybrid_retriever
+            self._hybrid_retriever
             .retrieve(
                 query=question,
                 top_k=10,
                 metadata_filter=metadata_filter
             )
         )
-        # print("\nAFTER HYBRID")
-        # print(f"count={len(chunks)}")
-
-        # for chunk in chunks:
-        #     print(
-        #         chunk.level,
-        #         chunk.node_id[:8],
-        #         chunk.content[:100]
-        #     )
 
         if not chunks:
 
+            answer = (
+                "No relevant information found."
+            )
+
+            self._conversation_memory_service.add_messages(
+                session_id=session_id,
+                messages=[
+                    ChatMessage(
+                        role=ChatRole.ASSISTANT,
+                        content=answer
+                    )
+                ]
+            )
+
             return RagResponse(
-                answer="No relevant information found.",
+                answer=answer,
                 sources=[],
                 retrieved_chunks=[]
             )
-        
-        chunks = self.reranker.rerank(
+
+        chunks = self._reranker.rerank(
             query=question,
             chunks=chunks,
             top_n=3
         )
 
-        # print("\nAFTER RERANK")
-        # print(f"count={len(chunks)}")
-
-        # for chunk in chunks:
-
-        #     print("=" * 100)
-        #     print(chunk.node_id)
-        #     print(chunk.content)
-        
         final_chunks = (
-            self.auto_merging_retriever
+            self._auto_merging_retriever
             .auto_merge(chunks)
         )
-
-        # print("\nAFTER AUTO MERGE")
-        # print(f"count={len(final_chunks)}")
-
-        # for chunk in final_chunks:
-
-        #     print(
-        #         chunk.level,
-        #         chunk.node_id[:8]
-        #     )
-
-        #     print(
-        #         chunk.content[:1000]
-        #     )
 
         context = "\n\n".join(
             chunk.content
             for chunk in final_chunks
         )
 
-        # return RagResponse(
-        #     answer="DEBUG MODE",
-        #     sources=[
-        #         f"{chunk.source} (level {chunk.level})"
-        #         for chunk in final_chunks
-        #     ],
-        #     retrieved_chunks=final_chunks
-        # )
-    
         prompt = f"""
 You are a System Design assistant.
 
-Use ONLY the provided context.
+Conversation History:
+{history_text}
+
+The conversation history is provided only to help
+understand follow-up questions and references such as
+"it", "that", "those", and similar pronouns.
+
+Use ONLY the provided context to answer.
 
 If the answer is not explicitly present in the context,
 respond exactly:
@@ -139,8 +156,18 @@ Question:
 {question}
 """
 
-        answer = self.gemini_service.ask(
+        answer = self._gemini_service.ask(
             prompt
+        )
+
+        self._conversation_memory_service.add_messages(
+            session_id=session_id,
+            messages=[
+                ChatMessage(
+                    role=ChatRole.ASSISTANT,
+                    content=answer
+                )
+            ]
         )
 
         sources = []
