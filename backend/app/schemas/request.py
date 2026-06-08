@@ -22,4 +22,4 @@ class AskRequest(BaseModel):
 
     metadata_filter: (
         MetadataFilter | None
-    ) = None
+) = None
