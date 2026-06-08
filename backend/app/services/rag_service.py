@@ -25,7 +25,9 @@ from app.schemas.chat_message import (
 from app.schemas.chat_role import (
     ChatRole
 )
-
+from app.query_rewriting.query_rewriter import (
+    QueryRewriter
+)
 
 class RagService:
 
@@ -35,8 +37,8 @@ class RagService:
         hybrid_retriever: HybridRetriever,
         reranker: Reranker,
         auto_merging_retriever: AutoMergingRetriever,
-        conversation_memory_service:
-            ConversationMemoryService
+        conversation_memory_service: ConversationMemoryService,
+        query_rewriter: QueryRewriter
     ):
         self._gemini_service = (
             gemini_service
@@ -58,6 +60,10 @@ class RagService:
             conversation_memory_service
         )
 
+        self._query_rewriter = (
+            query_rewriter
+        )
+
     def ask(
         self,
         session_id: str,
@@ -71,6 +77,18 @@ class RagService:
                 session_id=session_id
             )
         )
+
+        if history_text.strip():
+            rewritten_question = (
+                self._query_rewriter
+                .rewrite(
+                    question=question,
+                    history=history_text
+                )
+            )
+        else:
+            rewritten_question = question
+        
         self._conversation_memory_service.add_messages(
             session_id=session_id,
             messages=[
@@ -84,7 +102,7 @@ class RagService:
         chunks = (
             self._hybrid_retriever
             .retrieve(
-                query=question,
+                query=rewritten_question,
                 top_k=10,
                 metadata_filter=metadata_filter
             )
@@ -113,7 +131,7 @@ class RagService:
             )
 
         chunks = self._reranker.rerank(
-            query=question,
+            query=rewritten_question,
             chunks=chunks,
             top_n=3
         )
@@ -153,7 +171,7 @@ Context:
 {context}
 
 Question:
-{question}
+{rewritten_question}
 """
 
         answer = self._gemini_service.ask(

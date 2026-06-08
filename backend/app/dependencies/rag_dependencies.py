@@ -16,6 +16,9 @@ from app.dependencies.conversation_memory import (
 from app.services.rag_service import (
     RagService
 )
+from app.query_rewriting.gemini_query_rewriter import (
+    GeminiQueryRewriter
+)
 
 gemini_service = GeminiService()
 
@@ -27,6 +30,12 @@ auto_merging_retriever = (
     AutoMergingRetriever()
 )
 
+query_rewriter = (
+    GeminiQueryRewriter(
+        gemini_service
+    )
+)
+
 rag_service = RagService(
     gemini_service=gemini_service,
     hybrid_retriever=hybrid_retriever,
@@ -36,5 +45,10 @@ rag_service = RagService(
     ),
     conversation_memory_service=(
         conversation_memory_service
+    ),
+    query_rewriter = (
+        GeminiQueryRewriter(
+            gemini_service
+        )
     )
 )
