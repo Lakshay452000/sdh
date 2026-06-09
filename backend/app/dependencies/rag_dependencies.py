@@ -19,12 +19,32 @@ from app.services.rag_service import (
 from app.query_rewriting.gemini_query_rewriter import (
     GeminiQueryRewriter
 )
+from app.compression.context_compression_service import (
+    ContextCompressionService
+)
+from app.compression.sentence_reranker_compressor import (
+    SentenceRerankerCompressor
+)
+from app.config.settings import settings
 
 gemini_service = GeminiService()
 
 hybrid_retriever = HybridRetriever()
 
 reranker = Reranker()
+
+context_compression_service = (
+    ContextCompressionService(
+        compressor=(
+            SentenceRerankerCompressor(
+                reranker=reranker,
+                keep_ratio=(
+                    settings.context_compression_keep_ratio
+                )
+            )
+        )
+    )
+)
 
 auto_merging_retriever = (
     AutoMergingRetriever()
@@ -50,5 +70,8 @@ rag_service = RagService(
         GeminiQueryRewriter(
             gemini_service
         )
+    ),
+    context_compression_service=(
+        context_compression_service
     )
 )

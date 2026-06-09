@@ -4,9 +4,26 @@ from sentence_transformers import CrossEncoder
 class Reranker:
 
     def __init__(self):
-
         self.model = CrossEncoder(
             "cross-encoder/ms-marco-MiniLM-L-6-v2"
+        )
+
+    def score(
+        self,
+        query: str,
+        texts: list[str]
+    ) -> list[float]:
+
+        if not texts:
+            return []
+
+        pairs = [
+            (query, text)
+            for text in texts
+        ]
+
+        return list(
+            self.model.predict(pairs)
         )
 
     def rerank(
@@ -17,15 +34,14 @@ class Reranker:
     ):
 
         if not chunks:
-
             return []
-        pairs = [
-            (query, chunk.content)
-            for chunk in chunks
-        ]
 
-        scores = self.model.predict(
-            pairs
+        scores = self.score(
+            query=query,
+            texts=[
+                chunk.content
+                for chunk in chunks
+            ]
         )
 
         scored_chunks = list(
@@ -36,10 +52,12 @@ class Reranker:
             key=lambda x: x[1],
             reverse=True
         )
+
         for chunk, score in scored_chunks:
             chunk.reranker_score = float(score)
+
         return [
             chunk
-            for chunk, score
+            for chunk, _
             in scored_chunks[:top_n]
         ]

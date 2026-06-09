@@ -28,6 +28,9 @@ from app.schemas.chat_role import (
 from app.query_rewriting.query_rewriter import (
     QueryRewriter
 )
+from app.compression.context_compression_service import (
+    ContextCompressionService
+)
 
 class RagService:
 
@@ -38,7 +41,8 @@ class RagService:
         reranker: Reranker,
         auto_merging_retriever: AutoMergingRetriever,
         conversation_memory_service: ConversationMemoryService,
-        query_rewriter: QueryRewriter
+        query_rewriter: QueryRewriter,
+        context_compression_service: ContextCompressionService
     ):
         self._gemini_service = (
             gemini_service
@@ -62,6 +66,9 @@ class RagService:
 
         self._query_rewriter = (
             query_rewriter
+        )
+        self._context_compression_service = (
+            context_compression_service
         )
 
     def ask(
@@ -133,13 +140,37 @@ class RagService:
         chunks = self._reranker.rerank(
             query=rewritten_question,
             chunks=chunks,
-            top_n=3
+            top_n=5
         )
+        # print("\n===== AFTER RERANKING =====")
+
+        # for chunk in chunks:
+        #     print(chunk.reranker_score)
+        #     print(chunk.content[:300])
+        #     print("-------------------")
 
         final_chunks = (
             self._auto_merging_retriever
             .auto_merge(chunks)
         )
+        # print("\n========== BEFORE COMPRESSION ==========")
+
+        # for chunk in final_chunks:
+        #     print(chunk.content)
+        #     print("----------------------------------")
+
+        final_chunks = (
+            self._context_compression_service
+            .compress(
+                query=rewritten_question,
+                chunks=final_chunks
+            )
+        )
+        # print("\n========== AFTER COMPRESSION ==========")
+
+        # for chunk in final_chunks:
+        #     print(chunk.content)
+        #     print("----------------------------------")
 
         context = "\n\n".join(
             chunk.content
