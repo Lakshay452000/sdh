@@ -7,10 +7,14 @@ from app.exceptions.handlers import (
 from app.routers.document_router import (
     router as document_router
 )
+from app.interview.controller.interview_controller import (
+    router as interview_router
+)
 
 app = FastAPI()
 app.include_router(chat_router)
 app.include_router(document_router)
+app.include_router(interview_router)
 register_exception_handlers(app)
 
 

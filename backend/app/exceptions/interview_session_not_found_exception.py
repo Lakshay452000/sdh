@@ -1,0 +1,4 @@
+class InterviewSessionNotFoundException(
+    Exception
+):
+    pass

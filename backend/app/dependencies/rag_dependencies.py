@@ -66,11 +66,7 @@ rag_service = RagService(
     conversation_memory_service=(
         conversation_memory_service
     ),
-    query_rewriter = (
-        GeminiQueryRewriter(
-            gemini_service
-        )
-    ),
+    query_rewriter=query_rewriter,
     context_compression_service=(
         context_compression_service
     )
