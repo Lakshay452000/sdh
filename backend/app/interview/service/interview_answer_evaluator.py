@@ -1,5 +1,6 @@
-import json
-
+from app.utils.json_utils import (
+    extract_json
+)
 from app.services.gemini_service import (
     GeminiService
 )
@@ -61,6 +62,6 @@ class InterviewAnswerEvaluator:
             .strip()
         )
 
-        return json.loads(
-            cleaned_response
+        return InterviewEvaluation(
+            **extract_json(response)
         )
