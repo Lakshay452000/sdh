@@ -82,3 +82,67 @@ Return ONLY valid JSON.
   "recommendations": []
 }}
 """
+
+ARCHITECTURE_CORRECTION_PROMPT = """
+You are a Principal Software Architect.
+
+Original Architecture:
+{architecture_description}
+
+Review Findings:
+{review_findings}
+
+Evaluation:
+{evaluation}
+
+Your responsibilities:
+
+1. Fix all identified issues.
+2. Improve scalability, reliability, availability and maintainability.
+3. Redesign the architecture where necessary instead of only patching issues.
+4. Introduce appropriate architectural components when beneficial:
+   - Load Balancers
+   - API Gateway
+   - Redis Cache
+   - Message Queue (Kafka/RabbitMQ)
+   - Database Replicas
+   - Monitoring
+   - Service Separation
+
+Return ONLY valid JSON.
+
+{{
+  "corrected_architecture": "",
+  "changes": [
+    {{
+      "issue": "",
+      "applied_fix": "",
+      "reasoning": ""
+    }}
+  ],
+  "summary": {{
+    "major_improvements": [],
+    "expected_benefits": [],
+    "tradeoffs": []
+  }}
+}}
+
+Do not add additional fields.
+"""
+
+ARCHITECTURE_MERMAID_PROMPT = """
+You are an expert software architect.
+
+Convert the following architecture into a valid Mermaid graph TD diagram.
+
+Architecture:
+{architecture}
+
+Requirements:
+- Return ONLY Mermaid code.
+- Start with 'graph TD'.
+- Do not include explanations.
+- Do not include markdown code fences.
+- Do not include ```mermaid.
+- Do not include any text before or after the diagram.
+"""
