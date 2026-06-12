@@ -10,16 +10,15 @@ from app.routers.document_router import (
 from app.routers.interview_router import (
     router as interview_router
 )
-from app.routers.architecture_review_router import (
-    router as architecture_review_router
+from app.routers.architecture_router import (
+    router as architecture_router
 )
-
 app = FastAPI()
 app.include_router(chat_router)
 app.include_router(document_router)
 app.include_router(interview_router)
 register_exception_handlers(app)
-app.include_router(architecture_review_router)
+app.include_router(architecture_router)
 
 
 @app.get("/")

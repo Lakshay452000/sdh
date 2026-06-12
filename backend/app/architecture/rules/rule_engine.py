@@ -1,7 +1,7 @@
-from app.architecture_review.rules.missing_load_balancer_rule import (
+from app.architecture.rules.missing_load_balancer_rule import (
     MissingLoadBalancerRule
 )
-from app.architecture_review.rules.missing_load_balancer_rule import (
+from app.architecture.rules.missing_load_balancer_rule import (
     MissingLoadBalancerRule
 )
 

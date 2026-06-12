@@ -1,14 +1,19 @@
-from app.architecture_review.models import (
-    ArchitectureReviewResponse
+from app.architecture.models import (
+    ArchitectureEvaluation, ArchitectureReviewResponse
 )
-from app.architecture_review.prompts import (
+from app.architecture.prompts import (
+    ARCHITECTURE_EVALUATION_PROMPT,
     ARCHITECTURE_ANALYSIS_PROMPT
+)
+
+from app.utils.json_utils import (
+    extract_json
 )
 from app.utils.json_utils import (
     extract_json
 )
 
-class ArchitectureReviewService:
+class ArchitectureService:
 
     def __init__(
             self,
@@ -42,6 +47,29 @@ class ArchitectureReviewService:
 
         return self.rule_engine.execute(
             review
+        )
+    
+    async def evaluate(
+            self,
+            architecture_description: str,
+            review_findings: str
+    ) -> ArchitectureEvaluation:
+
+        prompt = (
+            ARCHITECTURE_EVALUATION_PROMPT.format(
+                architecture_description=architecture_description,
+                review_findings=review_findings
+            )
+        )
+
+        response = (
+            self.gemini_service.ask(
+                prompt
+            )
+        )
+
+        return ArchitectureEvaluation(
+            **extract_json(response)
         )
 
     

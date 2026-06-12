@@ -1,8 +1,8 @@
-from app.architecture_review.models import (
+from app.architecture.models import (
     ArchitectureReviewResponse
 )
 
-from app.architecture_review.rules.architecture_rule import (
+from app.architecture.rules.architecture_rule import (
     ArchitectureRule
 )
 

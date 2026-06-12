@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.architecture_review.models import (
+from app.architecture.models import (
     ArchitectureReviewResponse
 )
 
