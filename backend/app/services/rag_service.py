@@ -31,6 +31,9 @@ from app.query_rewriting.query_rewriter import (
 from app.compression.context_compression_service import (
     ContextCompressionService
 )
+from app.memory.services.conversation_summary_service import (
+    ConversationSummaryService
+)
 
 class RagService:
 
@@ -42,7 +45,8 @@ class RagService:
         auto_merging_retriever: AutoMergingRetriever,
         conversation_memory_service: ConversationMemoryService,
         query_rewriter: QueryRewriter,
-        context_compression_service: ContextCompressionService
+        context_compression_service: ContextCompressionService,
+        conversation_summary_service: ConversationSummaryService
     ):
         self._gemini_service = (
             gemini_service
@@ -70,6 +74,9 @@ class RagService:
         self._context_compression_service = (
             context_compression_service
         )
+        self._conversation_summary_service = (
+            conversation_summary_service
+        )
 
     def ask(
         self,
@@ -84,7 +91,10 @@ class RagService:
                 session_id=session_id
             )
         )
-
+        summary = (
+            self._conversation_summary_service
+            .get_summary(session_id)
+        )
         if history_text.strip():
             rewritten_question = (
                 self._query_rewriter
@@ -105,7 +115,27 @@ class RagService:
                 )
             ]
         )
+        message_count = len(
+            self._conversation_memory_service
+            .get_recent_messages(
+                session_id=session_id,
+                limit=10000
+            )
+        )
+        if message_count % 4 == 0:
 
+            updated_summary = (
+                self._conversation_summary_service
+                .generate_summary(
+                    existing_summary=summary,
+                    history_text=history_text
+                )
+            )
+
+            self._conversation_summary_service.save_summary(
+                session_id=session_id,
+                summary_text=updated_summary
+            )
         chunks = (
             self._hybrid_retriever
             .retrieve(
@@ -142,23 +172,10 @@ class RagService:
             chunks=chunks,
             top_n=5
         )
-        # print("\n===== AFTER RERANKING =====")
-
-        # for chunk in chunks:
-        #     print(chunk.reranker_score)
-        #     print(chunk.content[:300])
-        #     print("-------------------")
-
         final_chunks = (
             self._auto_merging_retriever
             .auto_merge(chunks)
         )
-        # print("\n========== BEFORE COMPRESSION ==========")
-
-        # for chunk in final_chunks:
-        #     print(chunk.content)
-        #     print("----------------------------------")
-
         final_chunks = (
             self._context_compression_service
             .compress(
@@ -166,12 +183,6 @@ class RagService:
                 chunks=final_chunks
             )
         )
-        # print("\n========== AFTER COMPRESSION ==========")
-
-        # for chunk in final_chunks:
-        #     print(chunk.content)
-        #     print("----------------------------------")
-
         context = "\n\n".join(
             chunk.content
             for chunk in final_chunks
@@ -180,7 +191,10 @@ class RagService:
         prompt = f"""
 You are a System Design assistant.
 
-Conversation History:
+Conversation Summary:
+{summary}
+
+Recent Conversation:
 {history_text}
 
 The conversation history is provided only to help

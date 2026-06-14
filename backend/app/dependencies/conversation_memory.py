@@ -1,5 +1,5 @@
-from app.memory.in_memory_conversation_memory_store import (
-    InMemoryConversationMemoryStore
+from app.memory.postgres_conversation_memory_store import (
+    PostgresConversationMemoryStore
 )
 
 from app.services.conversation_memory_service import (
@@ -7,7 +7,7 @@ from app.services.conversation_memory_service import (
 )
 
 memory_store = (
-    InMemoryConversationMemoryStore()
+    PostgresConversationMemoryStore()
 )
 
 conversation_memory_service = (

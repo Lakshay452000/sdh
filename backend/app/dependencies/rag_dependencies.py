@@ -26,6 +26,9 @@ from app.compression.sentence_reranker_compressor import (
     SentenceRerankerCompressor
 )
 from app.config.settings import settings
+from app.dependencies.conversation_summary_dependencies import (
+    conversation_summary_service
+)
 
 gemini_service = GeminiService()
 
@@ -65,6 +68,9 @@ rag_service = RagService(
     ),
     conversation_memory_service=(
         conversation_memory_service
+    ),
+    conversation_summary_service=(
+        conversation_summary_service
     ),
     query_rewriter=query_rewriter,
     context_compression_service=(
