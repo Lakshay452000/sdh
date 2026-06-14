@@ -29,6 +29,9 @@ from app.config.settings import settings
 from app.dependencies.conversation_summary_dependencies import (
     conversation_summary_service
 )
+from app.dependencies.long_term_memory_dependencies import (
+    long_term_memory_service
+)
 
 gemini_service = GeminiService()
 
@@ -75,5 +78,7 @@ rag_service = RagService(
     query_rewriter=query_rewriter,
     context_compression_service=(
         context_compression_service
-    )
+    ),
+    long_term_memory_service=
+        long_term_memory_service
 )

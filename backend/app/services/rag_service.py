@@ -34,6 +34,9 @@ from app.compression.context_compression_service import (
 from app.memory.services.conversation_summary_service import (
     ConversationSummaryService
 )
+from app.memory.services.long_term_memory_service import (
+    LongTermMemoryService
+)
 
 class RagService:
 
@@ -46,7 +49,8 @@ class RagService:
         conversation_memory_service: ConversationMemoryService,
         query_rewriter: QueryRewriter,
         context_compression_service: ContextCompressionService,
-        conversation_summary_service: ConversationSummaryService
+        conversation_summary_service: ConversationSummaryService,
+        long_term_memory_service: LongTermMemoryService
     ):
         self._gemini_service = (
             gemini_service
@@ -77,6 +81,9 @@ class RagService:
         self._conversation_summary_service = (
             conversation_summary_service
         )
+        self._long_term_memory_service = (
+            long_term_memory_service
+        )
 
     def ask(
         self,
@@ -95,12 +102,30 @@ class RagService:
             self._conversation_summary_service
             .get_summary(session_id)
         )
+        long_term_memories = (
+            self._long_term_memory_service
+            .get_memories(session_id)
+        )
+        long_term_memory_text = "\n".join(
+            long_term_memories
+        )
         if history_text.strip():
+            rewrite_context = f"""
+            Long Term Memory:
+            {long_term_memory_text}
+
+            Conversation Summary:
+            {summary}
+
+            Recent Conversation:
+            {history_text}
+            """
+
             rewritten_question = (
                 self._query_rewriter
                 .rewrite(
                     question=question,
-                    history=history_text
+                    history=rewrite_context
                 )
             )
         else:
@@ -115,31 +140,24 @@ class RagService:
                 )
             ]
         )
-        message_count = len(
-            self._conversation_memory_service
-            .get_recent_messages(
-                session_id=session_id,
-                limit=10000
-            )
-        )
-        if message_count % 4 == 0:
+        
+        retrieval_query = f"""
+        Long Term Memory:
+        {long_term_memory_text}
 
-            updated_summary = (
-                self._conversation_summary_service
-                .generate_summary(
-                    existing_summary=summary,
-                    history_text=history_text
-                )
-            )
+        Conversation Summary:
+        {summary}
 
-            self._conversation_summary_service.save_summary(
-                session_id=session_id,
-                summary_text=updated_summary
-            )
+        Recent Conversation:
+        {history_text}
+
+        Current Question:
+        {rewritten_question}
+        """
         chunks = (
             self._hybrid_retriever
             .retrieve(
-                query=rewritten_question,
+                query=retrieval_query,
                 top_k=10,
                 metadata_filter=metadata_filter
             )
@@ -160,7 +178,10 @@ class RagService:
                     )
                 ]
             )
-
+            self._update_summary_if_needed(
+                session_id=session_id,
+                summary=summary
+            )
             return RagResponse(
                 answer=answer,
                 sources=[],
@@ -191,32 +212,42 @@ class RagService:
         prompt = f"""
 You are a System Design assistant.
 
+Long Term Memory:
+{long_term_memory_text}
+
 Conversation Summary:
 {summary}
 
 Recent Conversation:
 {history_text}
 
-The conversation history is provided only to help
-understand follow-up questions and references such as
-"it", "that", "those", and similar pronouns.
-
-Use ONLY the provided context to answer.
-
-If the answer is not explicitly present in the context,
-respond exactly:
-
-"I could not find the answer in the provided context."
-
-Do not use prior knowledge.
-Do not make assumptions.
-Do not infer information that is not explicitly stated.
-
-Context:
+Retrieved Context:
 {context}
 
 Question:
 {rewritten_question}
+
+Use the following information sources in order:
+
+1. Recent Conversation
+2. Conversation Summary
+3. Long Term Memory
+4. Retrieved Context
+
+Rules:
+
+- For questions about previous messages, use Recent Conversation.
+- For questions about long-running discussions, use Conversation Summary.
+- For questions about user preferences, goals, or project state, use Long Term Memory.
+- For knowledge questions, use Retrieved Context.
+- Do not use prior knowledge.
+- Do not make assumptions.
+- Do not invent information.
+
+If the answer cannot be found in any of the above information sources,
+respond exactly:
+
+"I could not find the answer."
 """
 
         answer = self._gemini_service.ask(
@@ -232,7 +263,10 @@ Question:
                 )
             ]
         )
-
+        self._update_summary_if_needed(
+            session_id=session_id,
+            summary=summary
+        )
         sources = []
 
         for chunk in final_chunks:
@@ -253,3 +287,51 @@ Question:
             sources=sources,
             retrieved_chunks=final_chunks
         )
+    
+    def _update_summary_if_needed(
+        self,
+        session_id: str,
+        summary: str
+    ) -> None:
+
+        message_count = len(
+            self._conversation_memory_service
+            .get_recent_messages(
+                session_id=session_id,
+                limit=10000
+            )
+        )
+
+        if message_count % 4 == 0:
+
+            latest_history = (
+                self._conversation_memory_service
+                .build_history_text(
+                    session_id=session_id,
+                    limit=100
+                )
+            )
+
+            updated_summary = (
+                self._conversation_summary_service
+                .generate_summary(
+                    existing_summary=summary,
+                    history_text=latest_history
+                )
+            )
+
+            self._conversation_summary_service.save_summary(
+                session_id=session_id,
+                summary_text=updated_summary
+            )
+            memories = (
+                self._long_term_memory_service
+                .extract_memory(
+                    latest_history
+                )
+            )
+
+            self._long_term_memory_service.save_memories(
+                session_id=session_id,
+                memories=memories
+            )

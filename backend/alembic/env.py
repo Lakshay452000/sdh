@@ -9,11 +9,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.database.base import Base
-from app.conversation.models.conversation import Conversation
-from app.conversation.models.message import Message
-from app.memory.models.conversation_summary import (
-    ConversationSummary
-)
+import app.database.models
 
 load_dotenv()
 
