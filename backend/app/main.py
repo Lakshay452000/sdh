@@ -16,6 +16,8 @@ from app.routers.architecture_router import (
 from app.evaluation.controllers.evaluation_router import(
     router as evaluation_router
 )
+from app.agent.controllers.agent_controller import router as agent_router
+
 app = FastAPI()
 app.include_router(chat_router)
 app.include_router(document_router)
@@ -23,6 +25,7 @@ app.include_router(interview_router)
 register_exception_handlers(app)
 app.include_router(architecture_router)
 app.include_router(evaluation_router)
+app.include_router(agent_router)
 
 
 @app.get("/")
