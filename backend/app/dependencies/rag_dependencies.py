@@ -32,6 +32,16 @@ from app.dependencies.conversation_summary_dependencies import (
 from app.dependencies.long_term_memory_dependencies import (
     long_term_memory_service
 )
+from app.evaluation.services.dataset_loader import (
+    DatasetLoader
+)
+
+from app.evaluation.services.ragas_evaluation_service import (
+    RagasEvaluationService
+)
+from app.evaluation.services.evaluation_report_service import (
+    EvaluationReportService
+)
 
 gemini_service = GeminiService()
 
@@ -61,7 +71,9 @@ query_rewriter = (
         gemini_service
     )
 )
-
+evaluation_report_service = (
+    EvaluationReportService()
+)
 rag_service = RagService(
     gemini_service=gemini_service,
     hybrid_retriever=hybrid_retriever,
@@ -81,4 +93,16 @@ rag_service = RagService(
     ),
     long_term_memory_service=
         long_term_memory_service
+)
+
+dataset_loader = DatasetLoader()
+
+ragas_evaluation_service = (
+    RagasEvaluationService(
+        rag_service=rag_service,
+        dataset_loader=dataset_loader,
+        report_service=(
+            evaluation_report_service
+        )
+    )
 )

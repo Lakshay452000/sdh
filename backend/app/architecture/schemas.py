@@ -15,6 +15,11 @@ class ArchitectureChange(BaseModel):
     applied_fix: str
     reasoning: str
 
+class ArchitectureSummary(BaseModel):
+    major_improvements: list[str]
+    expected_benefits: list[str]
+    tradeoffs: list[str]
+    
 class ArchitectureCorrection(BaseModel):
     corrected_architecture: str
     changes: list[ArchitectureChange]
@@ -30,8 +35,3 @@ class ArchitectureDiagram(BaseModel):
 
 class MermaidDiagramRequest(BaseModel):
     architecture_description: str
-
-class ArchitectureSummary(BaseModel):
-    major_improvements: list[str]
-    expected_benefits: list[str]
-    tradeoffs: list[str]

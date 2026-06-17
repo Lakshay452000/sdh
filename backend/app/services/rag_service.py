@@ -89,27 +89,42 @@ class RagService:
         self,
         session_id: str,
         question: str,
-        metadata_filter: MetadataFilter | None = None
+        metadata_filter: MetadataFilter | None = None,
+        evaluation_mode: bool = False
     ) -> RagResponse:
 
-        history_text = (
-            self._conversation_memory_service
-            .build_history_text(
-                session_id=session_id
+        if evaluation_mode:
+
+            history_text = ""
+            summary = ""
+            long_term_memory_text = ""
+
+        else:
+
+            history_text = (
+                self._conversation_memory_service
+                .build_history_text(
+                    session_id=session_id
+                )
             )
-        )
-        summary = (
-            self._conversation_summary_service
-            .get_summary(session_id)
-        )
-        long_term_memories = (
-            self._long_term_memory_service
-            .get_memories(session_id)
-        )
-        long_term_memory_text = "\n".join(
-            long_term_memories
-        )
-        if history_text.strip():
+
+            summary = (
+                self._conversation_summary_service
+                .get_summary(session_id)
+            )
+
+            long_term_memories = (
+                self._long_term_memory_service
+                .get_memories(session_id)
+            )
+
+            long_term_memory_text = "\n".join(
+                long_term_memories
+            )
+        if (
+            not evaluation_mode
+            and history_text.strip()
+        ):
             rewrite_context = f"""
             Long Term Memory:
             {long_term_memory_text}
@@ -130,16 +145,17 @@ class RagService:
             )
         else:
             rewritten_question = question
-        
-        self._conversation_memory_service.add_messages(
-            session_id=session_id,
-            messages=[
-                ChatMessage(
-                    role=ChatRole.USER,
-                    content=question
-                )
-            ]
-        )
+
+        if not evaluation_mode:
+            self._conversation_memory_service.add_messages(
+                session_id=session_id,
+                messages=[
+                    ChatMessage(
+                        role=ChatRole.USER,
+                        content=question
+                    )
+                ]
+            )
         
         retrieval_query = f"""
         Long Term Memory:
@@ -253,20 +269,20 @@ respond exactly:
         answer = self._gemini_service.ask(
             prompt
         )
-
-        self._conversation_memory_service.add_messages(
-            session_id=session_id,
-            messages=[
-                ChatMessage(
-                    role=ChatRole.ASSISTANT,
-                    content=answer
-                )
-            ]
-        )
-        self._update_summary_if_needed(
-            session_id=session_id,
-            summary=summary
-        )
+        if not evaluation_mode:
+            self._conversation_memory_service.add_messages(
+                session_id=session_id,
+                messages=[
+                    ChatMessage(
+                        role=ChatRole.ASSISTANT,
+                        content=answer
+                    )
+                ]
+            )
+            self._update_summary_if_needed(
+                session_id=session_id,
+                summary=summary
+            )
         sources = []
 
         for chunk in final_chunks:
