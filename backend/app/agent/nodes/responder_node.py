@@ -1,20 +1,11 @@
 from app.agent.state import AgentState
 
 
-def responder_node(state: AgentState) -> AgentState:
-
-    route = state["route"]
-
-    if route == "architecture_review":
-        response = "Architecture review selected"
-
-    elif route == "evaluation":
-        response = "Evaluation selected"
-
-    else:
-        response = "RAG selected"
-
+def responder_node(
+    state: AgentState
+) -> AgentState:
+    print("RESPONDER")
     return {
         **state,
-        "response": response
+        "response": state["tool_result"]
     }
