@@ -11,7 +11,8 @@ class AgentService:
         result = self.graph.invoke(
             {
                 "user_query": query,
-                "iteration_count": 0
+                "iteration_count": 0,
+                "tool_results": []
             }
         )
 

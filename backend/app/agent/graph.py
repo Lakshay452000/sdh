@@ -22,7 +22,13 @@ from app.agent.nodes.reflection_router import (
 from app.agent.nodes.responder_node import (
     responder_node
 )
+from app.agent.nodes.plan_progress_node import (
+    plan_progress_node
+)
 
+from app.agent.nodes.plan_router import (
+    plan_router
+)
 
 def build_agent_graph():
 
@@ -47,19 +53,20 @@ def build_agent_graph():
         "responder",
         responder_node
     )
-
+    graph.add_node(
+        "plan_progress",
+        plan_progress_node
+    )
     graph.set_entry_point(
         "planner"
     )
-
     graph.add_edge(
         "planner",
         "tool_executor"
     )
-
     graph.add_edge(
         "tool_executor",
-        "reflection"
+        "plan_progress"
     )
 
     graph.add_conditional_edges(
@@ -68,6 +75,17 @@ def build_agent_graph():
         {
             "planner": "planner",
             "responder": "responder"
+        }
+    )
+    graph.add_conditional_edges(
+        "plan_progress",
+        plan_router,
+        {
+            "tool_executor":
+                "tool_executor",
+
+            "reflection":
+                "reflection"
         }
     )
 

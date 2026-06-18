@@ -6,18 +6,20 @@ from app.agent.tools.registry import (
 def tool_executor_node(
     state
 ):
-    print("TOOL EXECUTOR")
-    route = state["route"]
+    plan = state["plan"]
 
-    tool = (
-        TOOL_REGISTRY
-        .get(route)
+    step = plan[
+        state["current_step"]
+    ]
+
+    tool = TOOL_REGISTRY.get(
+        step
     )
 
     if tool is None:
 
         result = (
-            f"{route} tool not implemented"
+            f"{step} tool not implemented"
         )
 
     else:
@@ -26,7 +28,21 @@ def tool_executor_node(
             state["user_query"]
         )
 
+    tool_results = list(
+        state.get(
+            "tool_results",
+            []
+        )
+    )
+
+    tool_results.append(
+        {
+            "step": step,
+            "result": result
+        }
+    )
+
     return {
         **state,
-        "tool_result": result
+        "tool_results": tool_results
     }

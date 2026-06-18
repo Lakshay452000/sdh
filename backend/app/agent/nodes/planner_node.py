@@ -14,7 +14,18 @@ MEMORY_KEYWORDS = [
 def planner_node(
     state: AgentState
 ) -> AgentState:
-    print("PLANNER")
+    
+    if (
+        state.get("plan")
+        and
+        state["iteration_count"] > 0
+    ):
+        return {
+            **state,
+            "iteration_count":
+                state["iteration_count"] + 1
+        }
+    
     query = (
         state["user_query"]
         .lower()
@@ -22,28 +33,36 @@ def planner_node(
 
     if "review" in query:
 
-        route = (
-            "architecture_review"
-        )
+        plan = [
+            "architecture_review",
+            "evaluation"
+        ]
 
     elif "evaluate" in query:
 
-        route = "evaluation"
+        plan = [
+            "evaluation"
+        ]
 
     elif any(
         keyword in query
         for keyword in MEMORY_KEYWORDS
     ):
 
-        route = "memory"
+        plan = [
+            "memory"
+        ]
 
     else:
 
-        route = "rag"
+        plan = [
+            "rag"
+        ]
 
     return {
         **state,
-        "route": route,
+        "plan": plan,
+        "current_step": 0,
         "iteration_count":
             state.get(
                 "iteration_count",
