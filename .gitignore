@@ -4,4 +4,26 @@ __pycache__/
 chroma_db/
 .env
 .idea/
+*.pyc# Python
+venv/
+venv312/
+__pycache__/
 *.pyc
+
+# Local DB / Vector Store
+chroma_db/
+
+# Environment
+.env
+.env.*
+
+# IDE
+.idea/
+.vscode/
+
+# Frontend Build Artifacts
+frontend/dist/
+
+# OS Files
+.DS_Store
+Thumbs.db
