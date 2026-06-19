@@ -1,6 +1,6 @@
 from fastapi import APIRouter, File, UploadFile
 
-from app.dependencies.architecture import (
+from app.dependencies.architecture_dependencies import (
     architecture_service
 )
 from app.architecture.schemas import (

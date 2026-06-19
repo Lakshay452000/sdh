@@ -93,8 +93,16 @@ class ArchitectureService:
             prompt
         )
 
+        print(response)
+
+        parsed = extract_json(
+            response
+        )
+
+        print(parsed)
+
         return ArchitectureCorrection(
-            **extract_json(response)
+            **parsed
         )
 
     async def generate_mermaid_diagram(
