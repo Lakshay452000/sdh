@@ -26,8 +26,6 @@ class MultiQueryRetriever:
             self.query_expansion_service
             .generate_queries(question)
         )
-
-        print(queries)
         all_chunks = {}
 
         for query in queries:

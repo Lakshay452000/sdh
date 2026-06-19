@@ -9,5 +9,3 @@ Caching reduces latency.
 """ * 100
 
 chunks = split_text(text)
-
-print(f"Chunks: {len(chunks)}")

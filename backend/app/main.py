@@ -20,7 +20,22 @@ from app.agent.controllers.agent_controller import router as agent_router
 from app.multi_agent.controllers.workflow_controller import (
     router as workflow_router
 )
+from fastapi.middleware.cors import (
+    CORSMiddleware
+)
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
 app.include_router(chat_router)
 app.include_router(document_router)
 app.include_router(interview_router)

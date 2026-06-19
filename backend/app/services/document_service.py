@@ -72,10 +72,6 @@ class DocumentService:
                 }
             )
 
-        print(
-            f"Generated {len(nodes)} hierarchy nodes"
-        )
-
         collection.add(
             documents=documents,
             ids=ids,

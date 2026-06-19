@@ -93,13 +93,9 @@ class ArchitectureService:
             prompt
         )
 
-        print(response)
-
         parsed = extract_json(
             response
         )
-
-        print(parsed)
 
         return ArchitectureCorrection(
             **parsed

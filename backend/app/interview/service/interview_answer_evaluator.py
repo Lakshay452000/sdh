@@ -43,9 +43,6 @@ class InterviewAnswerEvaluator:
             self.gemini_service
                 .ask(prompt)
         )
-        print("Raw evaluation response******************:")
-        print(response)
-
         return InterviewEvaluation(
             **self._extract_json(response)
         )
