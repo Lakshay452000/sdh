@@ -23,5 +23,10 @@ export const permissionMap = {
   [Permission.EVALUATION]: [
     Role.ADMIN,
     Role.DEVELOPER
+  ],
+
+  [Permission.DOCUMENTS]: [
+    Role.ADMIN,
+    Role.DEVELOPER
   ]
 };

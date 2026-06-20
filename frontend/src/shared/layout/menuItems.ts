@@ -2,6 +2,7 @@ import ChatIcon from "@mui/icons-material/Chat";
 import ArchitectureIcon from "@mui/icons-material/Architecture";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
+import DocumentIcon from "@mui/icons-material/DocumentScanner";
 
 import { Permission } from "../../auth/permissions";
 
@@ -29,5 +30,11 @@ export const menuItems = [
     path: "/evaluation",
     icon: AnalyticsIcon,
     permission: Permission.EVALUATION
+  },
+  {
+    label: "Documents",
+    path: "/documents",
+    icon: DocumentIcon,
+    permission: Permission.DOCUMENTS
   }
 ];

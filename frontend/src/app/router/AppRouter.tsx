@@ -20,6 +20,9 @@ import EvaluationPage from
 import AppLayout from
   "../../shared/layout/AppLayout";
 
+import DocumentsPage from
+  "../../features/documents/DocumentsPage";
+
 export default function AppRouter() {
 
   return (
@@ -62,6 +65,13 @@ export default function AppRouter() {
             path="/evaluation"
             element={
               <EvaluationPage />
+            }
+          />
+
+          <Route
+            path="/documents"
+            element={
+              <DocumentsPage />
             }
           />
 

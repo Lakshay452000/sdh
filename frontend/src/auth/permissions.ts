@@ -2,7 +2,8 @@ export const Permission = {
   CHAT: "CHAT",
   ARCHITECTURE: "ARCHITECTURE",
   INTERVIEW: "INTERVIEW",
-  EVALUATION: "EVALUATION"
+  EVALUATION: "EVALUATION",
+  DOCUMENTS: "DOCUMENTS"
 } as const;
 
 export type Permission =
